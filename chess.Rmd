@@ -9,6 +9,8 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 
 ```{r}
 library(tidyverse)
+library(ggstatsplot)
+library(gridExtra)
 ```
 
 ```{r}
@@ -21,15 +23,21 @@ chess_jul13<-read_table("data/standard_jul13frl.txt")
 chess_jul13$date<-as.Date("2013-07-01")
 chess_jul13<-chess_jul13 %>% rename(rating=jul13)
 
+
+```
+
+```{r}
 ratings<-bind_rows(chess_jul18,chess_jul13)
 #Some clean up
-ratings<-ratings %>% rename(ID='ID Number')
-ratings$ID<-as.character(ratings$ID)
-ratings<-ratings %>% rename(birthyear='B-day')
-ratings$birthyear<-as.integer(ratings$birthyear)
+ratings<-ratings %>% rename(ID='ID Number') %>% mutate(ID=as.character(ID))
+ratings<-ratings %>% rename(birthyear='B-day') %>%
+  mutate(birthyear=as.integer(birthyear))
+#change probably bad years to NA
 ratings<-ratings %>% mutate(birthyear=ifelse(birthyear<1920,0,birthyear))
 ratings<-ratings %>% mutate(birthyear=na_if(birthyear,0))
-ratings<-ratings %>% rename(gender=Sex)
+ratings<-ratings %>% rename(gender=Sex) %>% mutate(gender=as.factor(gender))
+
+ratings<-ratings %>% filter(rating>999)
 
 ```
 
@@ -42,5 +50,21 @@ gg<- ratings %>% group_by(birthyear) %>%
   filter(birthyear<1990) %>% 
   ggplot(aes(birthyear,avg_rating))+geom_line()
 gg
+```
+```{r}
+p2<-ratings %>% filter(date==as.Date("2018-07-01")) %>%
+  ggstatsplot::ggbetweenstats(x=gender,y=rating,title="2018\nFIDE Chess Ratings By Gender")
+```
+
+
+
+```{r}
+p1<-ratings %>% filter(date==as.Date("2013-07-01")) %>%
+  ggstatsplot::ggbetweenstats(x=gender,y=rating,
+                              title="2013\nFIDE Chess Ratings By Gender")
+```
+
+```{r}
+grid.arrange(p1, p2, nrow = 1)
 ```
 
